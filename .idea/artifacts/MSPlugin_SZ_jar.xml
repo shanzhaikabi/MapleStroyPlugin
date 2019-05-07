@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="MSPlugin_SZ:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/MSPlugin_SZ_jar</output-path>
+    <root id="archive" name="MSPlugin_SZ.jar">
+      <element id="module-output" name="MSPlugin_SZ" />
+    </root>
+  </artifact>
+</component>
