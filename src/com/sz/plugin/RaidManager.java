@@ -1,9 +1,10 @@
-package com.sz.plugin.raid;
+package com.sz.plugin;
 
 import com.cms.game.script.binding.ScriptEvent;
 import com.cms.game.script.binding.ScriptMob;
 import com.cms.game.script.binding.ScriptPartyMember;
 import com.cms.game.script.binding.ScriptPlayer;
+import com.sz.plugin.MainManager;
 
 import java.util.Date;
 import java.util.List;
@@ -15,20 +16,29 @@ public class RaidManager {
     private long end_time;
     private int raid_id;
     private int loot_num;
+    private int roll_time;
 
     public RaidManager(ScriptEvent event) throws Exception{
         this.event = event;
         start_time = new Date().getTime();
         raid_id = getRaidId();
+        if (event.getVariable("loot_num") != null)
+            loot_num = (int) event.getVariable("loot_num");
+        else loot_num = 0;
         event.setVariable("raidid",raid_id);
         initPlayers();
     }
 
     public void mobDied(ScriptMob mob) throws Exception {
-        if (event.getVariable("members") == null) throw new Exception();
         end_time = new Date().getTime();
         if (loot_num == 0) return;
+        calculateDamage();
         updateLootNum();
+        setRoll();
+    }
+
+    private void setRoll() throws Exception {
+        ScriptPartyMember[] members = getMembers();
         List<Map<String,Object>> rs = getRollList();
         if (getRollList() == null) return;
         int roll_no = 1;
@@ -44,6 +54,26 @@ public class RaidManager {
             }
             roll_no++;
         }
+        if (roll_no > 1){//有roll的东西
+            event.startTimer("waitLoot", 1000);
+            for(ScriptPartyMember player : members){
+                player.scriptProgressMessage("出现了稀有掉落，请在3分钟内完成ROLL点！");
+                player.dropMessage(7,"出现了稀有掉落，请在3分钟内完成ROLL点！");
+            }
+        }
+    }
+
+    private void calculateDamage() throws Exception {
+        ScriptPartyMember[] members = getMembers();
+        for(ScriptPartyMember player : members){
+            PlayerStatus status = MainManager.getInstance().getPlayerStatus(player.getId());
+            long totalDamage = status.getTotalDamage();
+            long dps = totalDamage / ((end_time - start_time) / 1000);
+            event.setVariable(player.getName()+"damage",totalDamage);
+            event.setVariable(player.getName()+"dps",dps);
+            player.dropAlertNotice("5秒后将打开奖励面板！请不要打开任何NPC！");
+        }
+        event.startTimer("openNpc", 5 * 1000);
     }
 
     private Map<String,Object> getFinalList(List<Map<String,Object>> lootDetail){
@@ -65,6 +95,12 @@ public class RaidManager {
         if (members.length == 0) return;
         String sql = "insert into sz_raid_roll(raidid,rollno,itemid,quantity,prefix) values (?,?,?,?,?)";
         members[0].customSqlInsert(sql,raid_id,finalList.get("itemid"), finalList.get("quantity"), roll_no, finalList.get("equipdetail"));
+    }
+
+    private void updateLootNum(int num) throws Exception{
+        ScriptPartyMember[] members = getMembers();
+        String sql = "update sz_raid_log set status = ? where raidid = ? and status <= 0";
+        members[0].customSqlUpdate(sql,loot_num,raid_id);
     }
 
     private void updateLootNum() throws Exception {
@@ -115,5 +151,59 @@ public class RaidManager {
             return 1;
         }
         return (int) rs.get(0).get("a");
+    }
+
+    public void timerExpired(String key) {
+        switch (key){
+            case "openNpc":
+                try{
+                    openNpc();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                break;
+            case "waitLoot":
+                try{
+                    waitLoot();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                break;
+        }
+    }
+
+    private void openNpc() throws Exception {
+        ScriptPartyMember[] members = getMembers();
+        for(ScriptPartyMember player : members){
+            player.runScript("0_开箱3");
+        }
+    }
+
+    private void waitLoot() throws Exception {
+        if (roll_time == 180){
+            finishLoot();
+            return;
+        }
+        ScriptPartyMember[] members = getMembers();
+        String sql = "select * from sz_raid_log where raidid = ? and status != -5";
+        List<Map<String,Object>>  rs = members[0].customSqlResult(sql,raid_id);
+        for(Map<String,Object> r : rs) {
+            if (r == null) continue;
+            roll_time++;
+            event.startTimer("waitLoot", 1000);
+            return;
+        }
+        finishLoot();
+    }
+
+    private void finishLoot() throws Exception {
+        if (roll_time > 180) return;
+        updateLootNum(-6);
+        ScriptPartyMember[] members = getMembers();
+        for(ScriptPartyMember player : members){
+            player.scriptProgressMessage("ROLL点已完成，请打开开箱界面查看情况！");
+            player.dropMessage(7,"ROLL点已完成，请打开开箱界面查看情况！");
+        }
+        roll_time = 181;
     }
 }

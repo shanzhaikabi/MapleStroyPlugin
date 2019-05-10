@@ -3,7 +3,8 @@ package com.sz.plugin;
 import com.cms.game.script.binding.ScriptEvent;
 import com.cms.game.script.binding.ScriptMob;
 import com.cms.game.script.binding.ScriptPlayer;
-import com.sz.plugin.raid.RaidManager;
+
+import java.util.Map;
 
 public class MainManager {
     private static class MainManagerHolder {
@@ -13,22 +14,22 @@ public class MainManager {
         return MainManagerHolder.INSTANCE;
     }
 
-    public static ScriptEvent event;
-    public static ScriptPlayer player;
-    public static ScriptPlayer[] members;
+    private ScriptEvent event;
+    public ScriptPlayer player;
+    public ScriptPlayer[] members;
+    private Map<Integer,PlayerStatus> statusMap;
 
     private RaidManager raid_instance;
 
-    public RaidManager getRaidManger() {
+    public void setRaidManger(ScriptEvent event) {
         if (raid_instance == null) {
+            this.event = event;
             try {
                 raid_instance = new RaidManager(event);
-                return raid_instance;
             } catch (Exception e) {
-                return null;
+                close();
             }
         }
-        return raid_instance;
     }
 
     public void mobDied(ScriptMob mob){
@@ -36,7 +37,21 @@ public class MainManager {
             try {
                 raid_instance.mobDied(mob);
             }catch (Exception e){
+                close();
+            }
+        }
+    }
 
+    public void mobHit(ScriptPlayer player,ScriptMob mob,Long damage){
+
+    }
+
+    public void timerExpired(String key){
+        if (raid_instance != null){
+            try {
+                raid_instance.timerExpired(key);
+            }catch (Exception e){
+                close();
             }
         }
     }
@@ -44,5 +59,10 @@ public class MainManager {
     public void close(){
         raid_instance = null;
 
+    }
+
+    public PlayerStatus getPlayerStatus(int id) throws Exception {
+        if (statusMap.get(id) != null) return statusMap.get(id);
+        throw new Exception();
     }
 }
