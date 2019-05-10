@@ -14,7 +14,7 @@ public class RaidManager {
     private long start_time;
     private long end_time;
     private int raid_id;
-    private int lootnum;
+    private int loot_num;
 
     public RaidManager(ScriptEvent event) throws Exception{
         this.event = event;
@@ -27,51 +27,75 @@ public class RaidManager {
     public void mobDied(ScriptMob mob) throws Exception {
         if (event.getVariable("members") == null) throw new Exception();
         end_time = new Date().getTime();
-        if (lootnum == 0) return;
+        if (loot_num == 0) return;
         updateLootNum();
         List<Map<String,Object>> rs = getRollList();
         if (getRollList() == null) return;
-        int rollno = 1;
-        for(int i = 0;i < rs.size();i++){
-            int chance = (int) rs.get(i).get("chance");
-            int loot_detail_id = (int) rs.get(i).get("lootdetail");
-            int ran = (int)Math.floor(Math.random() * 100);
+        int roll_no = 1;
+        for (Map<String, Object> r : rs) {
+            int chance = (int) r.get("chance");
+            int loot_detail_id = (int) r.get("lootdetail");
+            int ran = (int) Math.floor(Math.random() * 100);
             if (ran > chance) continue;
-            List<Map<String,Object>> loot_detail = getLootDetail(loot_detail_id);
+            List<Map<String, Object>> loot_detail = getLootDetail(loot_detail_id);
             {
                 Map<String, Object> detail = getFinalList(loot_detail);
-                setItemFromLoot(raidid, detail.get("itemid"), detail.get("quantity"), rollno, detail.get("equipdetail"));
+                setItemFromLoot(detail, roll_no);
             }
-            rollno++;
+            roll_no++;
         }
     }
 
-    private void updateLootNum() {
+    private Map<String,Object> getFinalList(List<Map<String,Object>> lootDetail){
+        int heavy = 0;
+        for (Map<String, Object> stringObjectMap : lootDetail) {
+            heavy += (int) stringObjectMap.get("heavy");
+        }
+        int ran = (int)Math.floor(Math.random() * heavy);
+        for (Map<String, Object> stringObjectMap : lootDetail) {
+            ran -= (int) stringObjectMap.get("heavy");
+            if (ran < 0) return stringObjectMap;
+        }
+        return null;
+    }
+
+    private void setItemFromLoot(Map<String,Object> finalList,int roll_no){
         if (event.getVariable("members") == null) return;
         ScriptPartyMember[] members = (ScriptPartyMember[])event.getVariable("members");
+        if (members.length == 0) return;
+        String sql = "insert into sz_raid_roll(raidid,rollno,itemid,quantity,prefix) values (?,?,?,?,?)";
+        members[0].customSqlInsert(sql,raid_id,finalList.get("itemid"), finalList.get("quantity"), roll_no, finalList.get("equipdetail"));
+    }
+
+    private void updateLootNum() throws Exception {
+        ScriptPartyMember[] members = getMembers();
         String sql = "update sz_raid_log set status = ?, costtime = ? where raidid = ? and status <= 0";
-        members[0].customSqlUpdate(sql,lootnum,end_time - start_time,raid_id);
+        members[0].customSqlUpdate(sql,loot_num,end_time - start_time,raid_id);
     }
 
     private List<Map<String,Object>> getLootDetail(int loot_detail) throws Exception {
-        if (event.getVariable("members") == null) throw new Exception();
-        ScriptPartyMember[] members = (ScriptPartyMember[])event.getVariable("members");
+        ScriptPartyMember[] members = getMembers();
         String sql = "select * from sz_lootdetail where lootdetail = ?";
         return members[0].customSqlResult(sql,loot_detail);
     }
 
-    private List<Map<String,Object>> getRollList() throws Exception {
-        if (event.getVariable("raidname") == null) throw new Exception();
+    private ScriptPartyMember[] getMembers() throws Exception {
         if (event.getVariable("members") == null) throw new Exception();
         ScriptPartyMember[] members = (ScriptPartyMember[])event.getVariable("members");
+        if (members.length == 0)  throw new Exception();
+        return members;
+    }
+
+    private List<Map<String,Object>> getRollList() throws Exception {
+        if (event.getVariable("raidname") == null) throw new Exception();
+        ScriptPartyMember[] members = getMembers();
         String raid_name = (String) event.getVariable("raidname");
         String sql = "select * from raidname = ? order by rollno";
         return members[0].customSqlResult(sql,raid_name);
     }
 
     private void initPlayers() throws Exception {
-        if (event.getVariable("members") == null) throw new Exception();
-        ScriptPartyMember[] members = (ScriptPartyMember[])event.getVariable("members");
+        ScriptPartyMember[] members = getMembers();
         for(ScriptPartyMember player : members){
             initPlayer(player);
         }
@@ -84,9 +108,7 @@ public class RaidManager {
     }
 
     private int getRaidId() throws Exception {
-        if (event.getVariable("members") == null) throw new Exception();
-        ScriptPartyMember[] members = (ScriptPartyMember[])event.getVariable("members");
-        if (members.length == 0) throw new Exception();
+        ScriptPartyMember[] members = getMembers();
         String sql = "select max(raidid) as a from sz_raid_log";
         List<Map<String,Object>> rs = members[0].customSqlResult(sql);
         if (rs == null || rs.size() == 0) {
