@@ -2,8 +2,11 @@ package com.sz.plugin;
 
 import com.cms.game.script.binding.ScriptEvent;
 import com.cms.game.script.binding.ScriptMob;
+import com.cms.game.script.binding.ScriptPartyMember;
 import com.cms.game.script.binding.ScriptPlayer;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class MainManager {
@@ -15,18 +18,23 @@ public class MainManager {
     }
 
     private ScriptEvent event;
-    public ScriptPlayer player;
-    public ScriptPlayer[] members;
-    private Map<Integer,PlayerStatus> statusMap;
+    private Map<Integer,PlayerStatus> statusMap = new LinkedHashMap<>();
+    private ScriptPlayer player;
 
-    private RaidManager raid_instance;
+    private RaidManager raid_instance = null;
 
-    public void setRaidManger(ScriptEvent event) {
+    public void setRaidManager(ScriptEvent event) {
         if (raid_instance == null) {
             this.event = event;
             try {
                 raid_instance = new RaidManager(event);
+                ScriptPartyMember[] members = raid_instance.getMembers();
+                for (ScriptPartyMember player:members) {
+                    PlayerStatus status = new PlayerStatus();
+                    statusMap.put(player.getId(),status);
+                }
             } catch (Exception e) {
+                e.printStackTrace();
                 close();
             }
         }
@@ -43,7 +51,7 @@ public class MainManager {
     }
 
     public void mobHit(ScriptPlayer player,ScriptMob mob,Long damage){
-
+        player.dropMessage(6,"" + damage);
     }
 
     public void timerExpired(String key){

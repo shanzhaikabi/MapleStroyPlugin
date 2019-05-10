@@ -4,8 +4,9 @@ import com.cms.game.script.binding.ScriptEvent;
 import com.cms.game.script.binding.ScriptMob;
 import com.cms.game.script.binding.ScriptPartyMember;
 import com.cms.game.script.binding.ScriptPlayer;
-import com.sz.plugin.MainManager;
+import org.mozilla.javascript.*;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -22,11 +23,11 @@ public class RaidManager {
         this.event = event;
         start_time = new Date().getTime();
         raid_id = getRaidId();
-        if (event.getVariable("loot_num") != null)
-            loot_num = (int) event.getVariable("loot_num");
-        else loot_num = 0;
         event.setVariable("raidid",raid_id);
         initPlayers();
+        if (event.getVariable("lootnum") != null)
+            loot_num = (int)Math.floor((Double) event.getVariable("lootnum"));
+        else loot_num = 0;
     }
 
     public void mobDied(ScriptMob mob) throws Exception {
@@ -40,7 +41,6 @@ public class RaidManager {
     private void setRoll() throws Exception {
         ScriptPartyMember[] members = getMembers();
         List<Map<String,Object>> rs = getRollList();
-        if (getRollList() == null) return;
         int roll_no = 1;
         for (Map<String, Object> r : rs) {
             int chance = (int) r.get("chance");
@@ -48,10 +48,8 @@ public class RaidManager {
             int ran = (int) Math.floor(Math.random() * 100);
             if (ran > chance) continue;
             List<Map<String, Object>> loot_detail = getLootDetail(loot_detail_id);
-            {
-                Map<String, Object> detail = getFinalList(loot_detail);
-                setItemFromLoot(detail, roll_no);
-            }
+            Map<String, Object> detail = getFinalList(loot_detail);
+            setItemFromLoot(detail, roll_no);
             roll_no++;
         }
         if (roll_no > 1){//有roll的东西
@@ -94,19 +92,19 @@ public class RaidManager {
         ScriptPartyMember[] members = (ScriptPartyMember[])event.getVariable("members");
         if (members.length == 0) return;
         String sql = "insert into sz_raid_roll(raidid,rollno,itemid,quantity,prefix) values (?,?,?,?,?)";
-        members[0].customSqlInsert(sql,raid_id,finalList.get("itemid"), finalList.get("quantity"), roll_no, finalList.get("equipdetail"));
+        members[0].customSqlInsert(sql,raid_id, roll_no,finalList.get("itemid"), finalList.get("quantity"), finalList.get("equipdetail"));
     }
 
     private void updateLootNum(int num) throws Exception{
         ScriptPartyMember[] members = getMembers();
         String sql = "update sz_raid_log set status = ? where raidid = ? and status <= 0";
-        members[0].customSqlUpdate(sql,loot_num,raid_id);
+        members[0].customSqlUpdate(sql,num,raid_id);
     }
 
     private void updateLootNum() throws Exception {
         ScriptPartyMember[] members = getMembers();
         String sql = "update sz_raid_log set status = ?, costtime = ? where raidid = ? and status <= 0";
-        members[0].customSqlUpdate(sql,loot_num,end_time - start_time,raid_id);
+        members[0].customSqlInsert(sql,loot_num,end_time - start_time,raid_id);
     }
 
     private List<Map<String,Object>> getLootDetail(int loot_detail) throws Exception {
@@ -115,18 +113,17 @@ public class RaidManager {
         return members[0].customSqlResult(sql,loot_detail);
     }
 
-    private ScriptPartyMember[] getMembers() throws Exception {
+    public ScriptPartyMember[] getMembers() throws Exception {
         if (event.getVariable("members") == null) throw new Exception();
-        ScriptPartyMember[] members = (ScriptPartyMember[])event.getVariable("members");
-        if (members.length == 0)  throw new Exception();
-        return members;
+        NativeArray array = (NativeArray) event.getVariable("members");
+        return (ScriptPartyMember[]) array.toArray(new ScriptPartyMember[array.size()]);
     }
 
     private List<Map<String,Object>> getRollList() throws Exception {
         if (event.getVariable("raidname") == null) throw new Exception();
         ScriptPartyMember[] members = getMembers();
         String raid_name = (String) event.getVariable("raidname");
-        String sql = "select * from raidname = ? order by rollno";
+        String sql = "select * from sz_roll where raidname = ? order by rollno";
         return members[0].customSqlResult(sql,raid_name);
     }
 
@@ -139,8 +136,11 @@ public class RaidManager {
 
     private void initPlayer(ScriptPlayer player){
         String sql = "insert into sz_raid_log(raidid,raidname,date,characterid,isleader,status) values (?,?,?,?,?,?)";
-        java.sql.Date date = new java.sql.Date(start_time);
-        player.customSqlInsert(sql,raid_id,date,player.getId(),((int)event.getVariable("leaderid") == player.getId()) ? 1 : 0,0);
+        int is_leader = 0;
+        if ((int)Math.floor((Double) event.getVariable("leaderid")) == player.getId()) is_leader = 1;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String formatedDate = sdf.format(new Date(start_time));
+        player.customSqlInsert(sql,raid_id,event.getVariable("raidname"),formatedDate,player.getId(),is_leader,0);
     }
 
     private int getRaidId() throws Exception {
@@ -150,7 +150,7 @@ public class RaidManager {
         if (rs == null || rs.size() == 0) {
             return 1;
         }
-        return (int) rs.get(0).get("a");
+        return (int) rs.get(0).get("a") + 1;
     }
 
     public void timerExpired(String key) {

@@ -19,15 +19,15 @@ public class ScriptPlayer {
 
     }
 
-    public java.util.List<java.util.Map<java.lang.String,java.lang.Object>> customSqlResult(String sql,Object ... objects){
+    public java.util.List<java.util.Map<java.lang.String,java.lang.Object>> customSqlResult(String sql,Object ... args){
         return null;
     }
 
-    public void customSqlInsert(String sql,Object ... objects){
+    public void customSqlInsert(String sql,Object ... args){
 
     }
 
-    public void customSqlUpdate(String sql,Object ... objects){
+    public void customSqlUpdate(String sql,Object ... args){
 
     }
 
