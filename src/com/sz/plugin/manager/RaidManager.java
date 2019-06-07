@@ -1,9 +1,11 @@
-package com.sz.plugin;
+package com.sz.plugin.manager;
 
 import com.cms.game.script.binding.ScriptEvent;
 import com.cms.game.script.binding.ScriptMob;
 import com.cms.game.script.binding.ScriptPartyMember;
 import com.cms.game.script.binding.ScriptPlayer;
+import com.sz.plugin.MainManager;
+import com.sz.plugin.status.PlayerStatus;
 import org.mozilla.javascript.*;
 
 import java.text.SimpleDateFormat;
@@ -90,7 +92,6 @@ public class RaidManager {
     private void setItemFromLoot(Map<String,Object> finalList,int roll_no){
         if (event.getVariable("members") == null) return;
         ScriptPartyMember[] members = (ScriptPartyMember[])event.getVariable("members");
-        if (members.length == 0) return;
         String sql = "insert into sz_raid_roll(raidid,rollno,itemid,quantity,prefix) values (?,?,?,?,?)";
         members[0].customSqlInsert(sql,raid_id, roll_no,finalList.get("itemid"), finalList.get("quantity"), finalList.get("equipdetail"));
     }
