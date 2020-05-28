@@ -3,8 +3,10 @@ package com.sz.plugin.manager;
 import com.sz.plugin.effect.Effect;
 import com.sz.plugin.effect.EffectList;
 import com.sz.plugin.effect.RawEffect;
+import com.sz.plugin.status.PlayerStatus;
 
 import java.lang.reflect.Constructor;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -37,5 +39,14 @@ public class EffectManager {
         Class c = EffectList.getEffectByKey(key);
         Constructor constructor = c.getConstructor(RawEffect.class);
         return (Effect) constructor.newInstance(rawEffect);
+    }
+
+    public static Effect getEffectFromPlayer(String key){
+        return null;
+    }
+
+    public static void addEffectToPlayer(Effect effect, PlayerStatus player){
+        Map<Class, Map<String,Effect>> map = player.getEffectPool();
+
     }
 }

@@ -7,8 +7,7 @@ public class EffectList {
     private static final Map<String,Class> effectMap = new HashMap<>();
 
     static{
-        effectMap.put("attackup",AttackUp.class);
-        effectMap.put("type",EffectType.class);
+        effectMap.put("attack_up",AttackUp.class);
     }
 
     public static Class getEffectByKey(String key) {

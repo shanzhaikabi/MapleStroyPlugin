@@ -1,5 +1,6 @@
 package com.sz.plugin.status;
 
+import com.sz.plugin.effect.Effect;
 import com.sz.plugin.status.damage.DamageArea;
 import com.sz.plugin.utils.SpList;
 import javafx.util.Pair;
@@ -12,7 +13,11 @@ public class PlayerStatus {
     private SpList<DamageArea> area = new SpList<>();//伤害乘区
     private Object SkillPool;//记录技能情况
     private Object BuffPool;//记录buff
-    private Object EffectPool;//记录效果
+    private Map<Class, Map<String,Effect>> EffectPool;//记录效果
+
+    public Map<Class, Map<String, Effect>> getEffectPool() {
+        return EffectPool;
+    }
 
     public Pair<Double,Map<String,Double>> calculateArea(){
         double ret = 1;
@@ -31,5 +36,9 @@ public class PlayerStatus {
 
     public void addTotalDamage(long damage){
         totalDamage += damage;
+    }
+
+    public PlayerStatus(){
+
     }
 }
