@@ -1,0 +1,8 @@
+.idea
+.vscode
+.git
+out
+META-INF
+lib
+*.iml
+*.xml

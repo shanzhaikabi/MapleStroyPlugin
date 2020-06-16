@@ -12,11 +12,106 @@ import java.util.List;
 import java.util.Map;
 
 public class BuffManager {
+    
+    int maxPerLine = 5;//must be odd
+    int zy = -40;
+    int zx = 20;
+
+    class BuffEffect {
+        public int pos;
+        public String id;
+        public long ts;
+        public String path;
+        public int duration;
+        public BuffEffect(id, path, duration){
+            this.id = id;
+            this.path = path;
+            this.duration = duration;
+            this.ts = new Date().getTime() + duration;
+        }
+    }
 
     public Map<String,BaseBuff> buffList = new LinkedHashMap<>();
 
     int id;
     Object player;
+
+    public Map<String, BuffEffect> pendingEffect = new LinkedHashMap<>();
+    public Map<String, BuffEffect> curEffectMap = new LinkedHashMap<>();
+
+    public getMinPos(){
+        int pos = 99999;
+        for(BuffEffect e : curEffectMap){
+            pos = Math.min(pos,e.pos);
+        }
+        if (pos == 99999) pos = -1;
+        pos++;
+        return pos;
+    }
+
+    public addPendingBuff(String id,String path,int duration){
+        BuffEffect e = new BuffEffect(id, path, duration);
+        if (!pendingEffect.containsKey(e.id)){
+            pendingEffect.push(e.id,e);
+            Object event = MainManager.getInstance().event;
+        }
+        else{
+            BuffEffect effect = pendingEffect.get(e.id);
+            if (effect.ts >= e.ts) return;
+            pendingEffect.push(e.id,e);
+        }
+        if (!curEffectMap.containsKey(e.id)){
+            MSUtils.doMethod(event,"startTimer"
+                    , MessageFormat.format("sz_checkBuff:{0}",id)
+                    , 0);//起始
+        }
+        else{
+            long t = curEffectMap.get(e.id).ts - (e.ts - e.duration));
+            int tt = (int) t;
+            MSUtils.doMethod(event,"startTimer"
+                    , MessageFormat.format("sz_checkBuff:{0}",id)
+                    , tt);
+        }
+        MSUtils.doMethod(event,"startTimer"
+        , MessageFormat.format("sz_checkBuff:{0}",id)
+        , e.duration);//终止
+    }
+
+    public showBuffEffect(String path, int duration, int pos){
+        int y = pos / maxPerLine * zy;
+        int xx = pos % maxPerLine + 1;
+        int x = (xx / 2) * (xx & 2 ? -1 : 1);
+
+        MSUtils.doMethod(player,"setInGameDirectionMode",true,false,false,true);
+        MSUtils.doMethod(player,"showNpcEffectPlay",0,path,duration,x,y,true,0,true,0);
+        MSUtils.doMethod(player,"setInGameDirectionMode",false,true,false,false);
+    }
+
+    public checkBuff(boolean forced){
+        //remove timeout
+        List<String> l = dealWithOnTrigger();
+        for(String i : l){
+            BaseBuff buff = curEffectMap.get(i);
+            curEffectMap.remove(i);
+        }
+        l = new List<String>();
+        //check player status;
+        if (!MainManager.getInstance().getArtifactManager(id).isAuto) return;
+        for(BuffEffect e : pendingEffect.keySet()){
+            int d = (int)(e.ts - new Date().getTime());
+            if (d <= 0) l.add(e);
+            else if (!curEffectMap.containsKey(e)){
+                BuffEffect effect = pendingEffect.get(e);
+                effect.pos = getMinPos();
+                showBuffEffect(effect.path,d,effect.pos);
+                curEffectMap.put(e,effect);
+                l.add(e);
+            }
+        }
+        for(String i : l){
+            pendingEffect.remove(i);
+        }
+    }
 
     public BuffManager(Object player) throws Exception {
         this.player = player;
@@ -74,7 +169,7 @@ public class BuffManager {
         MSUtils.showMessage(player,showBuff());
     }
 
-    public void dealWithOnTrigger() throws Exception {
+    public List<String> dealWithOnTrigger() throws Exception {
         List<String> l = new ArrayList<>();
         for (String key : buffList.keySet()) {
             BaseBuff buff = buffList.get(key);
@@ -87,6 +182,7 @@ public class BuffManager {
             MSUtils.showMessage(player,buff.showOnRemoved());
             buffList.remove(i);
         }
+        return l;
     }
 
     public boolean checkBuffWithMob(BaseBuff buff,Object mob){

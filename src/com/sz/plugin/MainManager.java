@@ -39,6 +39,13 @@ public class MainManager {
         return buffManagers.values();
     }
 
+    public void removePlayer(int playerId){
+        try{
+            artifactManagers.remove(playerId);
+            buffManagers.remove(playerId);
+        }
+        catch (Exception e){};
+    }
 
     private static class MainManagerHolder {
         private static final MainManager INSTANCE = new MainManager();

@@ -18,12 +18,13 @@ public class ArtifactManager {
     int id;
     Object player;
     public long totalDamage = 0;
-    boolean isAuto = false;
+    public boolean isAuto = false;
     long time = -1;
     int publicCd = 500;//内置0.5s公共cd
     long lastArtifactAct = -1;
     int actCd = 1000;//内置2s神器触发cd
     int check = 0;
+    long damageCap = 10000000000L;
 
     List<BaseArtifact> artifacts = new ArrayList();
 
