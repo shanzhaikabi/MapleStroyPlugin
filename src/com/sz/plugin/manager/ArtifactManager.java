@@ -57,11 +57,17 @@ public class ArtifactManager
                 ((ArtifactTrigger)buff.trigger).cur_hits += 1;
     }
 
-    private long getDamageCap()
-            throws Exception
-    {
-        Object item = MSUtils.doMethod(this.player, "getInventorySlot", new Class[] { Byte.TYPE, Short.TYPE }, new Object[] { -1, -11 });
-        long lm = ((Long)MSUtils.doMethod(item, "getLimitBreak")).longValue();
+    private long getDamageCap() throws Exception {
+        long lm;
+        try{
+            Object item = MSUtils.doMethod(this.player, "getInventorySlot", new Class[] { Byte.TYPE, Short.TYPE }, new Object[] { -1, -11 });
+            lm = ((Long)MSUtils.doMethod(item, "getLimitBreak")).longValue();
+        }
+        catch (Exception e){
+            MSUtils.showWarning(this.player, "请不要在副本中更换装备！在此次副本中,你的神器将失效.");
+            this.baned = true;
+            lm = 200000000000L;
+        }
         return lm;
     }
 
@@ -254,6 +260,5 @@ public class ArtifactManager
                         }
                 }
             }
-        ShowEffectModule module;
     }
 }

@@ -49,16 +49,16 @@ public class ShowEffectModule implements ExtraModule {
             List<Integer> pos = getMobPos(mobPos);
             rx = pos.get(0) + x;
             ry = pos.get(1) + y;
-            MSUtils.doMethod(player,"showNpcEffectPlay",0,path,duration,rx,ry,true,0,true,0);
+            MSUtils.doMethod(player,"showNpcEffectPlay",0,path,duration,rx,ry,true,0,true,0,"");
         }
         else if (block){
             Point pos = (Point) MSUtils.doMethod(player,"getPosition");
             rx = (int) (pos.getX() + x);
             ry = (int) (pos.getY() + y);
-            MSUtils.doMethod(player,"showNpcEffectPlay",0,path,duration,rx,ry,true,0,true,0);
+            MSUtils.doMethod(player,"showNpcEffectPlay",0,path,duration,rx,ry,true,0,true,0,"");
         }
         else{
-            MSUtils.doMethod(player,"showNpcEffectPlay",0,path,duration,rx,ry,true,0,false,0);
+            MSUtils.doMethod(player,"showNpcEffectPlay",0,path,duration,rx,ry,true,0,false,0,"");
         }
     }
 
