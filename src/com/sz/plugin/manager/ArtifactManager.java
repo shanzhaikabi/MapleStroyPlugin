@@ -60,7 +60,7 @@ public class ArtifactManager
     private long getDamageCap() throws Exception {
         long lm;
         try{
-            Object item = MSUtils.doMethod(this.player, "getInventorySlot", new Class[] { Byte.TYPE, Short.TYPE }, new Object[] { -1, -11 });
+            Object item = MSUtils.doMethod(this.player, "getInventorySlot", (byte) -1, (short)-11);
             lm = ((Long)MSUtils.doMethod(item, "getLimitBreak")).longValue();
         }
         catch (Exception e){
