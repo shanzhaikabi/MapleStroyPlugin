@@ -26,7 +26,6 @@ public class TimeArtifact implements ActiveModule {
     }
 
     @Override
-    public void onTrigger() {
-
+    public void onTrigger(double radio) {
     }
 }

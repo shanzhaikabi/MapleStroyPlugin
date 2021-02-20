@@ -15,7 +15,7 @@ public class BaseArtifact {
     public String name;
     public ActiveModule active = new ActiveModule() {
         @Override
-        public void onTrigger() {
+        public void onTrigger(double radio) {
 
         }
 
@@ -55,8 +55,8 @@ public class BaseArtifact {
         this.name = name;
     }
 
-    public void onTrigger(){
-        this.active.onTrigger();
+    public void onTrigger(double radio) {
+        this.active.onTrigger(radio);
     }
 
     public boolean isActive(){

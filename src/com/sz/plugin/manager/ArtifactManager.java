@@ -13,18 +13,21 @@ import com.sz.plugin.utils.MSUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class ArtifactManager {
     int id;
     Object player;
     public long totalDamage = 0;
-    public boolean isAuto = false;
+    boolean isAuto = false;
     long time = -1;
     int publicCd = 500;//内置0.5s公共cd
     long lastArtifactAct = -1;
     int actCd = 1000;//内置2s神器触发cd
     int check = 0;
     long damageCap = 10000000000L;
+    boolean baned = false;
+    double jobRadio = 1.0D;
 
     List<BaseArtifact> artifacts = new ArrayList();
 
@@ -37,6 +40,7 @@ public class ArtifactManager {
         this.id = (int)MSUtils.doMethod(player,"getId");
         String p = (String) MSUtils.doMethod(player,"getQuestRecordEx", new Class[]{int.class, String.class},888999, "artifactAuto");
         this.isAuto = "1".equals(p);
+        this.damageCap = getDamageCap();
         initArtifact();
     }
 
@@ -46,7 +50,7 @@ public class ArtifactManager {
         return objects;
     }
 
-    public void dealWithArtifactTrigger(BuffManager buffManager){
+    public void dealWithArtifactTrigger(BuffManager buffManager) {
         for(BaseBuff buff : buffManager.buffList.values()){
             if (buff.trigger instanceof ArtifactTrigger){
                 ((ArtifactTrigger) buff.trigger).cur_hits++;
@@ -54,17 +58,50 @@ public class ArtifactManager {
         }
     }
 
-    public void setAuto(){
+    private long getDamageCap() throws Exception {
+        long lm;
+        try {
+            Object item = MSUtils.doMethod(this.player, "getInventorySlot", (byte)-1, -11);
+            lm = ((Long)MSUtils.doMethod(item, "getLimitBreak")).longValue();
+        }
+        catch (Exception e)
+        {
+            MSUtils.showWarning(this.player, "请不要在副本中更换装备！在此次副本中,你的神器将失效.");
+            this.baned = true;
+            lm = 200000000000L;
+        }
+        return lm;
+    }
+
+    private void removePlayer() throws Exception {
+        MSUtils.doMethod(this.player, "setEvent", null);
+    }
+
+    private void checkDamageCap() throws Exception {
+        long lm = getDamageCap();
+        if (lm != this.damageCap) {
+            MSUtils.showWarning(this.player, "请不要在副本中更换装备！在此次副本中,你的神器将失效.");
+            this.baned = true;
+        }
+    }
+
+    public void setAuto() {
         this.isAuto = !isAuto;
     }
 
     public long dealWithArtifact(Object mob,long damage) throws Exception {
+        if (this.baned) return 0L;
         MobManager.addMob(mob);
+        int chance = new Random().nextInt(1000);
+        if (chance < 10) {
+            checkDamageCap();
+        }
+        double radio = damage * 1.0D / this.damageCap / 10.0D * this.jobRadio;
         long exDmg = 0;
         BuffManager buffManager = MainManager.getInstance().getBuffManager(id);
         String prefix = buffManager.showBuffWhenArtifactActive();
         for (BaseArtifact artifact:artifacts) {
-            artifact.onTrigger();
+            artifact.onTrigger(radio);
             if (System.currentTimeMillis() > time && artifact.isActive()){
                 exDmg = artifact.extraDamage(damage);
                 if (artifact.stack.isMax()){
@@ -74,7 +111,7 @@ public class ArtifactManager {
                     artifact.stack.setReady();
                     artifact.setEff(new Object[] {mob,exDmg});//normal type,wow~
                     if (!isAuto)
-                    showReady("",artifact);
+                        showReady("",artifact);
                 }
                 /*showEffect(artifact,mob);
                 showDamage(prefix,artifact,ed);*///move to act
@@ -92,11 +129,16 @@ public class ArtifactManager {
     }
 
     public long dealWithArtifactAct() throws Exception {
+        if (this.baned) {
+            MSUtils.showWarning(this.player, "在本次副本中无法使用神器！");
+            return 0L;
+        }
         if (System.currentTimeMillis() < lastArtifactAct){
             MSUtils.showWarning(player,"神器触发器已过载，正在冷却中！");
             check = 0;
             return 0;
         }
+        checkDamageCap();
         BuffManager buffManager = MainManager.getInstance().getBuffManager(id);
         String prefix = buffManager.showBuffWhenArtifactActive();
         for (BaseArtifact artifact:artifacts) {
@@ -105,7 +147,7 @@ public class ArtifactManager {
             Object[] objects = (Object[]) artifact.getEff();
             Object mob = objects[0];
             Object[] args = new Object[0];
-            long ed = (long) objects[1];
+            long ed = artifact.extraDamage(this.damageCap);
             ed += buffManager.dealWithArtifactDamage(ed,mob,artifact);
             if (artifact.effect instanceof EffectModule){
                 args = getObjectNeededForBuffArtifact(mob);

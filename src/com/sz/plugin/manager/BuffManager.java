@@ -1,15 +1,14 @@
 package com.sz.plugin.manager;
 
+import com.sz.plugin.MainManager;
 import com.sz.plugin.artifact.BaseArtifact;
 import com.sz.plugin.artifact.buff.BaseBuff;
 import com.sz.plugin.artifact.buff.StackableBuff;
 import com.sz.plugin.artifact.buff.effect.*;
 import com.sz.plugin.utils.MSUtils;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.MessageFormat;
+import java.util.*;
 
 public class BuffManager {
     
@@ -23,7 +22,7 @@ public class BuffManager {
         public long ts;
         public String path;
         public int duration;
-        public BuffEffect(id, path, duration){
+        public BuffEffect(String id, String path, int duration){
             this.id = id;
             this.path = path;
             this.duration = duration;
@@ -39,26 +38,26 @@ public class BuffManager {
     public Map<String, BuffEffect> pendingEffect = new LinkedHashMap<>();
     public Map<String, BuffEffect> curEffectMap = new LinkedHashMap<>();
 
-    public getMinPos(){
+    public int getMinPos() {
         int pos = 99999;
-        for(BuffEffect e : curEffectMap){
-            pos = Math.min(pos,e.pos);
+        for (BuffEffect e : this.curEffectMap.values()) {
+            pos = Math.min(pos, e.pos);
         }
         if (pos == 99999) pos = -1;
         pos++;
         return pos;
     }
 
-    public addPendingBuff(String id,String path,int duration){
+    public void addPendingBuff(String id, String path, int duration) throws Exception {
         BuffEffect e = new BuffEffect(id, path, duration);
+        Object event = MainManager.getInstance().event;
         if (!pendingEffect.containsKey(e.id)){
-            pendingEffect.push(e.id,e);
-            Object event = MainManager.getInstance().event;
+            pendingEffect.put(e.id,e);
         }
         else{
             BuffEffect effect = pendingEffect.get(e.id);
             if (effect.ts >= e.ts) return;
-            pendingEffect.push(e.id,e);
+            pendingEffect.put(e.id,e);
         }
         if (!curEffectMap.containsKey(e.id)){
             MSUtils.doMethod(event,"startTimer"
@@ -66,7 +65,7 @@ public class BuffManager {
                     , 0);//起始
         }
         else{
-            long t = curEffectMap.get(e.id).ts - (e.ts - e.duration));
+            long t = ((BuffEffect)this.curEffectMap.get(e.id)).ts - (e.ts - e.duration);
             int tt = (int) t;
             MSUtils.doMethod(event,"startTimer"
                     , MessageFormat.format("sz_checkBuff:{0}",id)
@@ -77,35 +76,36 @@ public class BuffManager {
         , e.duration);//终止
     }
 
-    public showBuffEffect(String path, int duration, int pos){
+    public void showBuffEffect(String path, int duration, int pos) throws Exception {
         int y = pos / maxPerLine * zy;
         int xx = pos % maxPerLine + 1;
-        int x = (xx / 2) * (xx & 2 ? -1 : 1);
+        int x = (xx / 2) * (xx % 2 == 1 ? -1 : 1);
 
-        MSUtils.doMethod(player,"setInGameDirectionMode",true,false,false,true);
-        MSUtils.doMethod(player,"showNpcEffectPlay",0,path,duration,x,y,true,0,true,0);
-        MSUtils.doMethod(player,"setInGameDirectionMode",false,true,false,false);
+        MSUtils.doMethod(player,"setInGameDirectionMode",true,false,false,true,"");
+        MSUtils.doMethod(player,"showNpcEffectPlay",0,path,duration,x,y,true,0,true,0,"");
+        MSUtils.doMethod(player,"setInGameDirectionMode",false,true,false,false,"");
     }
 
-    public checkBuff(boolean forced){
+    public void checkBuff(boolean forced) throws Exception {
         //remove timeout
         List<String> l = dealWithOnTrigger();
         for(String i : l){
-            BaseBuff buff = curEffectMap.get(i);
+            BuffEffect buff = curEffectMap.get(i);
             curEffectMap.remove(i);
         }
-        l = new List<String>();
+        l = new ArrayList<>();
         //check player status;
         if (!MainManager.getInstance().getArtifactManager(id).isAuto) return;
-        for(BuffEffect e : pendingEffect.keySet()){
+        for (String k : this.pendingEffect.keySet()) {
+            BuffEffect e = (BuffEffect)this.pendingEffect.get(k);
             int d = (int)(e.ts - new Date().getTime());
-            if (d <= 0) l.add(e);
-            else if (!curEffectMap.containsKey(e)){
-                BuffEffect effect = pendingEffect.get(e);
+            if (d <= 0) { l.add(k);
+            } else if (!this.curEffectMap.containsKey(k)) {
+                BuffEffect effect = (BuffEffect)this.pendingEffect.get(k);
                 effect.pos = getMinPos();
-                showBuffEffect(effect.path,d,effect.pos);
-                curEffectMap.put(e,effect);
-                l.add(e);
+                showBuffEffect(effect.path, d, effect.pos);
+                this.curEffectMap.put(k, effect);
+                l.add(k);
             }
         }
         for(String i : l){

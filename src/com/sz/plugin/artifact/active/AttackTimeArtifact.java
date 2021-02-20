@@ -10,7 +10,7 @@ import com.sz.plugin.artifact.ActiveModule;
 public class AttackTimeArtifact implements ActiveModule {
 
     public int count;
-    public int cur_count = 0;
+    public double cur_count = 0;
 
     public AttackTimeArtifact(String time) {
         this(Integer.valueOf(time));
@@ -31,7 +31,7 @@ public class AttackTimeArtifact implements ActiveModule {
     }
 
     @Override
-    public void onTrigger() {
-        this.cur_count++;
+    public void onTrigger(double radio) {
+        this.cur_count += radio;
     }
 }

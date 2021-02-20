@@ -12,10 +12,11 @@ import java.util.Random;
 public class ChanceArtifact implements ActiveModule {
 
     public int chance;
-    public int failedTime;
+    public double failedTime;
     public int critical;
     public int selfCd;//内置cd 单位为ms
     public long time;//时间戳 用于计算cd
+    public double radio;
 
     public ChanceArtifact(String chance) {
         this(Integer.valueOf(chance));
@@ -41,11 +42,12 @@ public class ChanceArtifact implements ActiveModule {
             time = System.currentTimeMillis() + selfCd;
             return true;
         }
-        failedTime++;
+        failedTime += radio;
         return false;
     }
 
     @Override
-    public void onTrigger() {
+    public void onTrigger(double radio) {
+        this.radio = radio;
     }
 }

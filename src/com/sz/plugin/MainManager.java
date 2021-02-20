@@ -136,7 +136,7 @@ public class MainManager {
         if (curHp < 0) curHp = 0;
         MSUtils.doMethod(mob,"setHp",curHp);*/
         if (extraDamage > 0)
-        MSUtils.doMethod(mob,"hurt",extraDamage);
+            MSUtils.doMethod(mob,"hurt",extraDamage);
         getArtifactManager(pid).addDamage(extraDamage + dmg);
         return extraDamage + dmg;
     }
