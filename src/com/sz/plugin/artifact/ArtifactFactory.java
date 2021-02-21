@@ -71,6 +71,7 @@ public class ArtifactFactory {
         boolean mob = false;
         boolean block = false;
         String path = "";
+        String path2 = null;
         int duration = 0;
         for (String s2 : args) {
             String[] k = s2.split("!");
@@ -97,9 +98,12 @@ public class ArtifactFactory {
                 case "path":
                     path = k[1];
                     break;
+                case "path2":
+                    path2 = k[1];
+                    break;
             }
         }
-        ShowEffectModule module = new ShowEffectModule(x,y,duration,self,mob,block,path);
+        ShowEffectModule module = new ShowEffectModule(x,y,duration,self,mob,block,path,path2);
         return module;
     }
 

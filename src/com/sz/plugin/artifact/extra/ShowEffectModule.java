@@ -16,15 +16,17 @@ public class ShowEffectModule implements ExtraModule {
     private boolean self;
     private boolean mob;
     private String path;
+    private String path2;
     private int duration;
     private boolean block;
 
-    public ShowEffectModule(int x,int y,int duration,boolean self,boolean mob,boolean block,String path){
+    public ShowEffectModule(int x,int y,int duration,boolean self,boolean mob,boolean block,String path, String path2){
         this.x = x;
         this.y = y;
         this.self = self;
         this.mob = mob;
         this.path = path;
+        this.path2 = path2;
         this.duration = duration;
         this.block = block;
     }
@@ -62,4 +64,9 @@ public class ShowEffectModule implements ExtraModule {
         }
     }
 
+    public void showEffectWhenClosed(Object player) throws Exception {
+        if (path2 != null) {
+            MSUtils.doMethod(player, "screenEffect", path2);
+        }
+    }
 }

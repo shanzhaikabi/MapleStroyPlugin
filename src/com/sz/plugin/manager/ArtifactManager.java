@@ -234,14 +234,17 @@ public class ArtifactManager {
     public void showEffect(BaseArtifact artifact,Object mob) throws Exception {
         if (artifact.effectModule.size() > 0){
             for(ShowEffectModule module : artifact.effectModule){
-                if (openEffect && module.isSelf()){
+                if (openEffect) {
                     MSUtils.doMethod(player,"setInGameDirectionMode",true,false,false,true);
                     module.showEffect(player,mob);
                     MSUtils.doMethod(player,"setInGameDirectionMode",false,true,false,false);
                 }
-                else{
+                else {
+                    module.showEffectWhenClosed(player);
+                }
+                if (!module.isSelf()){
                     for (ArtifactManager manager : MainManager.getInstance().getArtifactManagers().values()) {
-                        if (!manager.openEffect && manager.id != id) continue;
+                        if (!manager.openEffect || manager.id != id) continue;
                         MSUtils.doMethod(manager.player,"setInGameDirectionMode",true,false,false,true);
                         module.showEffect(manager.player,mob);
                         MSUtils.doMethod(manager.player,"setInGameDirectionMode",false,true,false,false);
