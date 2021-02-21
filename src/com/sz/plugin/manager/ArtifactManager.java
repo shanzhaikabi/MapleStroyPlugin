@@ -19,12 +19,11 @@ public class ArtifactManager {
     int id;
     Object player;
     public long totalDamage = 0;
-    boolean isAuto = false;
+    boolean openEffect = false;
     long time = -1;
     int publicCd = 500;//内置0.5s公共cd
     long lastArtifactAct = -1;
     int actCd = 1000;//内置2s神器触发cd
-    int check = 0;
     long damageCap = 10000000000L;
     boolean baned = false;
     double jobRadio = 1.0D;
@@ -38,8 +37,8 @@ public class ArtifactManager {
     public ArtifactManager(Object player) throws Exception {
         this.player = player;
         this.id = (int)MSUtils.doMethod(player,"getId");
-        String p = (String) MSUtils.doMethod(player,"getQuestRecordEx", new Class[]{int.class, String.class},888999, "artifactAuto");
-        this.isAuto = "1".equals(p);
+        String p = (String) MSUtils.doMethod(player,"getQuestRecordEx", new Class[]{int.class, String.class},888999, "artifactEffect");
+        this.openEffect = "1".equals(p);
         this.damageCap = getDamageCap();
         initArtifact();
     }
@@ -85,8 +84,8 @@ public class ArtifactManager {
         }
     }
 
-    public void setAuto() {
-        this.isAuto = !isAuto;
+    public void setOpenEffect() {
+        this.openEffect = !openEffect;
     }
 
     public long dealWithArtifact(Object mob,long damage) throws Exception {
@@ -110,18 +109,11 @@ public class ArtifactManager {
                 else{
                     artifact.stack.setReady();
                     artifact.setEff(new Object[] {mob,exDmg});//normal type,wow~
-                    if (!isAuto)
-                        showReady("",artifact);
                 }
                 /*showEffect(artifact,mob);
                 showDamage(prefix,artifact,ed);*///move to act
-                if (isAuto){
-                    dealWithArtifactAct();
-                    time = System.currentTimeMillis() + Math.max(actCd,publicCd);
-                }
-                else{
-                    time = System.currentTimeMillis() + publicCd;
-                }
+                dealWithArtifactAct();
+                time = System.currentTimeMillis() + Math.max(actCd,publicCd);
                 dealWithArtifactTrigger(buffManager);
             }
         }
@@ -131,11 +123,10 @@ public class ArtifactManager {
     public long dealWithArtifactAct() throws Exception {
         if (this.baned) {
             MSUtils.showWarning(this.player, "在本次副本中无法使用神器！");
-            return 0L;
+            return 0;
         }
         if (System.currentTimeMillis() < lastArtifactAct){
             MSUtils.showWarning(player,"神器触发器已过载，正在冷却中！");
-            check = 0;
             return 0;
         }
         checkDamageCap();
@@ -168,14 +159,7 @@ public class ArtifactManager {
             }
             showDamage(prefix,artifact,ed);
             lastArtifactAct = System.currentTimeMillis() + actCd;
-            check = 0;
             return ed;
-        }
-        check++;
-        if (check == 5){
-            check = 0;
-            setAuto();
-            MSUtils.showMessage(player,"你已切换神器触发模式，当前模式：" + (isAuto?"自动":"手动"));
         }
         MSUtils.showWarning(player,"你的神器均未就绪！");
         return 0;
@@ -250,14 +234,14 @@ public class ArtifactManager {
     public void showEffect(BaseArtifact artifact,Object mob) throws Exception {
         if (artifact.effectModule.size() > 0){
             for(ShowEffectModule module : artifact.effectModule){
-                if (module.isSelf()){
+                if (openEffect && module.isSelf()){
                     MSUtils.doMethod(player,"setInGameDirectionMode",true,false,false,true);
                     module.showEffect(player,mob);
                     MSUtils.doMethod(player,"setInGameDirectionMode",false,true,false,false);
                 }
                 else{
                     for (ArtifactManager manager : MainManager.getInstance().getArtifactManagers().values()) {
-                        if (!manager.isAuto && manager.id != id) continue;
+                        if (!manager.openEffect && manager.id != id) continue;
                         MSUtils.doMethod(manager.player,"setInGameDirectionMode",true,false,false,true);
                         module.showEffect(manager.player,mob);
                         MSUtils.doMethod(manager.player,"setInGameDirectionMode",false,true,false,false);

@@ -95,7 +95,6 @@ public class BuffManager {
         }
         l = new ArrayList<>();
         //check player status;
-        if (!MainManager.getInstance().getArtifactManager(id).isAuto) return;
         for (String k : this.pendingEffect.keySet()) {
             BuffEffect e = (BuffEffect)this.pendingEffect.get(k);
             int d = (int)(e.ts - new Date().getTime());
