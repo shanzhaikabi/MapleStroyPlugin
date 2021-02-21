@@ -46,20 +46,26 @@ public class MSUtils {
             }
             return m.invoke(obj,args);
         }catch (Exception e){
-            Method[] ms = c.getMethods();
-            Method m = null;
-            for (Method m1:ms) {
-                if (m1.getName().equals(name)){
-                    m = m1;
-                    break;
+            try {
+                Method[] ms = c.getMethods();
+                Method m = null;
+                for (Method m1 : ms) {
+                    if (m1.getName().equals(name)) {
+                        m = m1;
+                        break;
+                    }
                 }
+                m.setAccessible(true);
+                if (m.getReturnType().equals(Void.TYPE)) {
+                    m.invoke(obj, args);
+                    return null;
+                }
+                return m.invoke(obj, args);
+            }catch (Exception e1){
+                e1.printStackTrace();
+                JsUtils.PrintMessage(e1);
+                throw e1;
             }
-            m.setAccessible(true);
-            if (m.getReturnType().equals(Void.TYPE)){
-                m.invoke(obj,args);
-                return null;
-            }
-            return m.invoke(obj,args);
         }
     }
 

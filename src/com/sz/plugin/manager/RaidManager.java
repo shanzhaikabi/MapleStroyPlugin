@@ -112,9 +112,7 @@ public class RaidManager {
     }
 
     public Object[] getMembers() throws Exception {
-        if (MSUtils.doMethod(event,"getVariable","members") == null) throw new Exception();
-        NativeArray array = (NativeArray) MSUtils.doMethod(event,"getVariable","members");
-        return (Object[]) array.toArray(new Object[array.size()]);
+        return null;
     }
 
     private List<Map<String,Object>> getRollList() throws Exception {

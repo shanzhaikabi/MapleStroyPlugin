@@ -6,6 +6,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.JarURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -230,4 +232,36 @@ public class JsUtils {
         }
     }
 
+    public static void PrintMessage(String str, String path) throws IOException {
+        File file = new File(path);
+        if (!file.exists()) {
+            file.createNewFile();
+        }
+        PrintWriter printWriter = new PrintWriter(new FileWriter(file,true),true);
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+        printWriter.println(df.format(new Date()));
+        printWriter.println(str);
+        printWriter.close();
+    }
+
+    public static void PrintMessage(String str) throws IOException {
+        PrintMessage(str, "D:\\err.txt");
+    }
+
+    public static void PrintMessage(Exception e, String path) throws IOException {
+        File file = new File(path);
+        if (!file.exists()) {
+            file.createNewFile();
+        }
+        PrintWriter printWriter = new PrintWriter(new FileWriter(file,true),true);
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+        printWriter.println(df.format(new Date()));
+        e.printStackTrace(printWriter);
+        printWriter.flush();
+        printWriter.close();
+    }
+
+    public static void PrintMessage(Exception e) throws IOException {
+        PrintMessage(e, "D:\\err.txt");
+    }
 }

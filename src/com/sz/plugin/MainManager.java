@@ -87,15 +87,22 @@ public class MainManager {
     private long timestamp;
 
     public void init(Object[] members,Object event) throws Exception{
-        //注册members
-        this.members = members;
-        for (Object m : members) {
-            int pid = (int)MSUtils.doMethod(m,"getId");
-            artifactManagers.put(pid,new ArtifactManager(m));
-            buffManagers.put(pid,new BuffManager(m));
+        try{
+            //注册members
+            this.members = members;
+            for (Object m : members) {
+                int pid = (int)MSUtils.doMethod(m,"getId");
+                artifactManagers.put(pid,new ArtifactManager(m));
+                buffManagers.put(pid,new BuffManager(m));
+            }
+            this.event = event;
+            timestamp = 0;
         }
-        this.event = event;
-        timestamp = 0;
+        catch (Exception e){
+            e.printStackTrace();
+            JsUtils.PrintMessage(e);
+            throw e;
+        }
     }
 
     public void mobDied(Object mob){
@@ -116,36 +123,43 @@ public class MainManager {
         return ActManager.dealWithAct(type,args);
     }
 
-    public long mobHit(Object player,Object mob,Object damage) throws Exception{
-        long dmg = ((Double)damage).longValue();
-        if (timestamp == System.currentTimeMillis()) return 0;//防止多次触发mobHit
-        if (dmg < 10000000) return dmg;//取消小伤害对系统的影响.
-        timestamp = System.currentTimeMillis();
-        int pid = (int)MSUtils.doMethod(player,"getId");
-        //处理buff失效情况
-        getBuffManager(pid).dealWithOnTrigger();
-        //处理最终伤害
-        long baseDmg = dmg + getBuffManager(pid).dealWithBaseDamage(dmg,mob);
-        //检查是否发动技能
-        long artifactDamage = getArtifactManager(pid).dealWithArtifact(mob,baseDmg);
-        //处理追加伤害
-        long finalDamage = getBuffManager(pid).dealWithFinalDamage(dmg,mob);
-        long extraDamage = baseDmg /*+ artifactDamage*/ + finalDamage - dmg;
+    public long mobHit(Object player,Object mob,Object damage) throws Exception {
+        try{
+            long dmg = ((Double)damage).longValue();
+            if (timestamp == System.currentTimeMillis()) return 0;//防止多次触发mobHit
+            if (dmg < 10000000) return dmg;//取消小伤害对系统的影响.
+            timestamp = System.currentTimeMillis();
+            int pid = (int)MSUtils.doMethod(player,"getId");
+            //处理buff失效情况
+            getBuffManager(pid).dealWithOnTrigger();
+            //处理最终伤害
+            long baseDmg = dmg + getBuffManager(pid).dealWithBaseDamage(dmg,mob);
+            //检查是否发动技能
+            long artifactDamage = getArtifactManager(pid).dealWithArtifact(mob,baseDmg);
+            //处理追加伤害
+            long finalDamage = getBuffManager(pid).dealWithFinalDamage(dmg,mob);
+            long extraDamage = baseDmg /*+ artifactDamage*/ + finalDamage - dmg;
         /*long bossHp = (long) MSUtils.doMethod(mob,"getHp");
         long curHp = bossHp - extraDamage;
         if (curHp < 0) curHp = 0;
         MSUtils.doMethod(mob,"setHp",curHp);*/
-        if (extraDamage > 0)
-            MSUtils.doMethod(mob,"hurt",extraDamage);
-        getArtifactManager(pid).addDamage(extraDamage + dmg);
-        return extraDamage + dmg;
+            if (extraDamage > 0)
+                MSUtils.doMethod(mob,"hurt",extraDamage);
+            getArtifactManager(pid).addDamage(extraDamage + dmg);
+            return extraDamage + dmg;
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            JsUtils.PrintMessage(e);
+            throw e;
+        }
     }
 
     public void timerExpired(String key){
         if (raidManager != null){
             try {
                 raidManager.timerExpired(key);
-            }catch (Exception e){
+            } catch (Exception e){
                 close();
             }
         }
